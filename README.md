@@ -4,11 +4,11 @@ A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HL
 
 ## Repository Policy
 
-**Repository Purpose:** To safeguard the codebase and maintain proprietary performance enhancements, Kyty Android is closed-source. This official repository does not contain the emulator's source code. Instead, it serves as the official version archive and primary distribution platform for releasing APK builds, managing compatibility issues, and sharing user guides.
+**Repository Purpose:** To safeguard the codebase and maintain proprietary performance enhancements (Kyty Android is closed-source This official) repository does not contain the emulator's source code Instead, it serves as the official version archive and primary distribution platform for releasing APK builds managing compatibility issues and sharing user guides... 
 
 ## Status
 
-**Early Development** - The emulator is in active development. Core systems are being integrated and tested on Android ARM64 devices.
+**Early Development** - The emulator is in active development Core systems are being integrated and tested on Android ARM64 devices.
 
 ### What Works
 - ELF loading (PS4/PS5 format)

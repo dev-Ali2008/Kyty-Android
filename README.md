@@ -1,6 +1,6 @@
 # Kyty - PS4 & PS5 Emulator for Android
 
-A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HLE (High-Level Emulation) emulator, featuring a full x86_64 CPU interpreter, Vulkan 1.1 rendering pipeline, AMD GCN shader translation, and a complete JNI bridge between Kotlin UI and C++ emulation core.
+A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HLE (High-Level Emulation) emulator featuring a full x86_64 CPU interpreter, Vulkan 1.1 rendering pipeline, AMD GCN shader translation, and a complete JNI bridge between Kotlin UI and C++ emulation core.
 
 ## Repository Policy
 
@@ -28,6 +28,9 @@ A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HL
 
 #### PS5
 <img src="https://github.com/dev-Ali2008/Kyty-Android/blob/08613effa7fc45dcc063d489d4d9d2226a63f3fe/Vulkan%201.1.png" width="800">
+
+**The kyty ps5 homebrews with glitches but we edit it Core to Native - other codes CPP full**
+
 
 ## Architecture
 

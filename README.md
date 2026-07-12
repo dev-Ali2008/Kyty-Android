@@ -24,6 +24,11 @@ A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HL
 - Audio subsystem
 - Controller/input mapping
 
+### Test
+
+#### PS5
+<img src="https://github.com/dev-Ali2008/Kyty-Android/blob/08613effa7fc45dcc063d489d4d9d2226a63f3fe/Vulkan%201.1.png" width="800">
+
 ## Architecture
 
 ```

@@ -1,26 +1,54 @@
 # Kyty - PS4 & PS5 Emulator for Android
 
-A native Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 HLE (High-Level Emulation) emulator featuring a full x86_64 CPU interpreter, Vulkan 1.1 rendering pipeline, AMD GCN shader translation, and a complete JNI bridge between Kotlin UI and C++ emulation core.
+Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 emulator. x86_64 interpreter on ARM64, Vulkan 1.1 rendering, AMD GCN to SPIR-V shader translation, Kotlin UI talking to C++ core through JNI.
+
+> Brother This is a real emulator — it runs actual PS5 ELF binaries on your phone Not a video player - not streaming, not pre-recorded And **NOT SCAMMER ?!** The interpreter decodes x86_64 instructions one by one on the ARM64 CPU HLE syscalls map to real Linux kernel calls and Vulkan renders frames through your GPU driver... How it all works is explained in [How_ITS_work?.md](https://github.com/dev-Ali2008/Kyty-Android/blob/main/How_ITS_work%3F.md).
 
 ## Repository Policy
 
-**Repository Purpose:** To safeguard the codebase and maintain proprietary performance enhancements (Kyty Android is closed-source This official) repository does not contain the emulator's source code Instead, it serves as the official version archive and primary distribution platform for releasing APK builds managing compatibility issues and sharing user guides... 
+**Repository Purpose:** To safeguard the codebase and maintain proprietary performance enhancements (Kyty Android is closed-source This official) repository does not contain the emulator's source code Instead, it serves as the official version archive and primary distribution platform for releasing APK builds managing compatibility issues and sharing user guides...
 
 ## Status
 
-**Early Development** - The emulator is in active development Core systems are being integrated and tested on Android ARM64 devices.
+Still early days. Core subsystems are up and running — ELF loading, interpreter execution, HLE dispatch, basic Vulkan pipeline. Working through game-specific issues as they come up.
 
-### What Works
+### What's working
 - ELF loading (PS4/PS5 format)
-- x86_64 CPU instruction decoding and execution (ARM64 interpreter)
-- Vulkan 1.1 rendering pipeline with runtime SPIR-V shader assembly
-- HLE system call dispatch (x86_64 SysV ABI to ARM64 AAPCS64)
+- x86_64 instruction decoding and execution on ARM64
+- ~200+ opcodes so far:
+  - Standard ALU, MOV, PUSH/POP, CALL/RET, JMP/Jcc
+  - Bit rotation: ROL/ROR/RCL/RCR (1 and CL variants)
+  - PUSHFQ/POPFQ for full RFLAGS register save/restore
+  - CPUID with PS4/PS5-compatible feature bits
+  - POPCNT through BMI1 detection
+  - String ops: MOVS, CMPS, STOS, LODS, SCAS with REP prefix
+  - Full ModR/M + SIB + displacement addressing
+  - SSE/SSE2 packed integer and double-precision
+  - MFENCE/LFENCE/SFENCE memory fences
+  - WAIT and FPU control
+  - FS/GS segment override for TLS and stack canary
+- PLT native dispatch:
+  - Native function pointer slots for HLE calls
+  - `GetMem` reads with null-check safety
+  - SYSTEM_RESERVED range excluded from native detection
+  - Resolved addresses stored during ELF relocation
+- Vulkan 1.1 pipeline with runtime SPIR-V shader assembly
+- HLE syscall dispatch — x86_64 SysV ABI mapped to ARM64 AAPCS64
+- 70+ syscalls:
+  - Memory: mmap, munmap, mprotect, mquery, madvise
+  - Threads: thr_new, thr_exit, mutex, condvar, rwlock
+  - Dynlib: load_prx, get_info, get_list, prepare_dlclose, process_needed_and_relocate
+  - Time: clock_gettime, nanosleep, gettimeofday, select
+  - I/O: open, close, read, write, writev, ioctl
+  - Filesystem: mkdir, rmdir, getdents, stat, unlink
+  - Signal: sigaction, sigprocmask, sigaltstack, sigtimedwait
+  - Misc: sysarch, tls_setup, cpuset, dynlib_do_copy_relocations
 - Kotlin UI with file picker, ROM selection, and emulator controls
-- Interpreter self-test suite (ALU, memory, branches, SSE, stack, stress)
+- Interpreter self-test suite covering ALU, memory, branches, SSE, stack, stress
 
-### In Progress
+### Still working on
 - PS4/PS5 HLE library integration (SysV, Memory, Display, etc.)
-- GPU command processing
+- GPU command processing (PM4 draw dispatch)
 - Audio subsystem
 - Controller/input mapping
 
@@ -43,8 +71,17 @@ Kotlin UI (EmulatorActivity)
 Kyty C++ Core
     |
     +-- ELF Loader (RuntimeLinker)
+    |   +-- Segment relocation
+    |   +-- PLT allocation (ReadWrite native pointer slots)
+    |   +-- DT_NEEDED parsing (no auto-load yet)
     +-- x86_64 CPU Interpreter (x86_cpu.cpp)
+    |   +-- ~200+ opcodes (ALU, SIMD, string, segment, FPU)
+    |   +-- FS/GS segment override (TLS access)
+    |   +-- PLT native dispatch (GetMem + DispatchNativeCall)
+    |   +-- Thread-local state per pthread
     +-- HLE System Calls (DispatchNativeCall)
+    |   +-- x86_64 SysV ABI → ARM64 AAPCS64
+    |   +-- 70+ syscalls (memory, threads, dynlib, I/O, signal)
     +-- Vulkan Renderer (spirv-tools runtime assembly)
     +-- AMD GCN -> SPIR-V Shader Translation
     +-- Lua Scripting Engine
@@ -53,42 +90,66 @@ Kyty C++ Core
 Android NDK / Vulkan 1.1 / ARM64 Native
 ```
 
+## How it actually works
+
+People keep asking how this runs on Android. Here's the short version:
+
+1. **ELF Loading** — The PS5 game binary gets `mmap`'d into the process at the same virtual addresses it expects. The interpreter sees the code at the same address the PS5 kernel would.
+
+2. **x86_64 Interpretation** — Every instruction is decoded and executed by a big switch/case loop running on the ARM64 CPU. No translation layer, no recompilation — just reading x86_64 bytes and doing what they say.
+
+3. **HLE Syscalls** — When the game tries to call a PS5 kernel function through the `syscall` instruction, we intercept it. `sys_mmap` becomes Linux `mmap`, `sys_pthread_create` becomes `pthread_create`. The game gets real memory allocation and real threads.
+
+4. **PLT Dispatch** — Library function calls go through a table of function pointers that we fill in during ELF loading with pointers to our native implementations.
+
+5. **Vulkan Rendering** — GPU commands come out as AMD GCN PM4 packets. We parse those and translate them to Vulkan 1.1 calls that the Android GPU driver actually executes.
+
+There's a longer explanation with code examples in [How_ITS_work?.md](https://github.com/dev-Ali2008/Kyty-Android/blob/main/How_ITS_work%3F.md).
+
 ## Key Features
 
 ### x86_64 CPU Interpreter
-Since Android devices use ARM64 processors, PS4/PS5 x86_64 machine code cannot execute natively. The interpreter decodes and executes x86_64 instructions at runtime:
 
-- Full ModR/M + SIB addressing mode decoding
-- ~150+ x86_64 opcodes (MOV, PUSH/POP, CALL/RET, JMP/Jcc, ALU ops)
-- SSE instruction support (MOVSS/MOVSD, ADDSS/SUBSS/MULSS/DIVSS, CVT*)
-- SYSCALL interception for HLE dispatch
-- 64-bit memory model with direct pointer translation
-- 16MB interpreter stack
+Android runs ARM64, PS5 games are x86_64. Can't run the instructions natively. So we interpret them — read each byte, figure out what it means, execute it.
 
-### HLE Call Interception
-When the interpreter encounters a `CALL r/m64` instruction targeting a PLT stub (address >= 0x800000000000), it intercepts the call and dispatches it as a native ARM64 function call:
+- ModR/M + SIB + displacement addressing fully decoded
+- ~200+ opcodes: MOV, PUSH/POP, CALL/RET, JMP/Jcc, ALU, strings, segments
+- SSE/SSE2: MOVSS/MOVSD, ADDSD/SUBSD/MULSD/DIVSD, CVTTSS2SI, packed ops
+- CPUID, POPCNT, FENCE (MFENCE/LFENCE/SFENCE)
+- FS/GS segment override for TLS — game reads GS:0x28 for stack canary
+- PLT dispatch for HLE calls
+- SYSCALL interception
+- 64-bit address space with direct pointer access
+- 16MB stack per interpreter thread
 
-- Translates x86_64 SysV ABI (RDI/RSI/RDX/RCX/R8/R9) to ARM64 AAPCS64 (X0-X5)
-- Supports up to 6 integer arguments
-- Automatic return value propagation back to x86_64 RAX
+### PLT Native Dispatch
+
+When the interpreter hits a `CALL r/m64` or `CALL rel32` into the PLT range (`0x800000000`–`0x900000000`), it reads the native function pointer from that slot and calls it directly:
+
+- Slots filled during ELF relocation with resolved native addresses
+- `GetMem` with null-check — unresolved entries log and return 0 instead of crashing
+- x86_64 SysV ABI (RDI/RSI/RDX/RCX/R8/R9) mapped to ARM64 AAPCS64 (X0–X5)
+- Up to 6 integer arguments
+- Return value propagated back to x86_64 RAX
 
 ### Vulkan 1.1 Rendering
-Runtime SPIR-V shader assembly using spirv-tools (no offline shader compiler needed):
+
+Runtime SPIR-V shader assembly using spirv-tools — no offline shader compiler needed:
 
 - Instance, Device, and Swapchain management
 - Android Surface integration
-- Graphics pipeline with hardcoded triangle test
+- Graphics pipeline with triangle test for verification
 - Vertex and fragment SPIR-V shaders compiled at runtime via `spvTextToBinary()`
 
 ### Kotlin UI
 - ROM/ELF file picker with storage access framework
-- Emulator lifecycle management (init, load, run, stop)
-- Surface view for Vulkan rendering output
-- Per-test result display with detailed PASS/FAIL reporting
+- Emulator lifecycle (init, load, run, stop)
+- Surface view for Vulkan output
+- Per-test PASS/FAIL display
 
 ## Testing
 
-The interpreter includes a comprehensive self-test suite with 6 categories:
+Self-test suite with 6 categories:
 
 | Test | Description | Expected |
 |------|-------------|----------|
@@ -99,7 +160,7 @@ The interpreter includes a comprehensive self-test suite with 6 categories:
 | Stack | PUSH/POP LIFO ordering | 4400 |
 | Stress | 100K iteration loop with accumulator | varies |
 
-Test results are displayed in-app with per-test PASS/FAIL status.
+Results show in-app with per-test PASS/FAIL status.
 
 ## Third-Party Libraries
 

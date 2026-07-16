@@ -1,3 +1,10 @@
+<p align="center">
+    <a href="https://github.com/dev-Ali2008/Kyty-Android/blob/7aadd2e477e32baff0a4cb678fac84f03976d316/icon_App.pnp">
+        <img height="150px" src="https://github.com/dev-Ali2008/Kyty-Android/blob/7aadd2e477e32baff0a4cb678fac84f03976d316/icon_App.png" />
+    </a>
+</p>
+
+
 # Kyty - PS4 & PS5 Emulator for Android
 
 Android port of the [Kyty](https://github.com/InoriRus/Kyty) PS4/PS5 emulator. x86_64 interpreter on ARM64, Vulkan 1.1 rendering, AMD GCN to SPIR-V shader translation, Kotlin UI talking to C++ core through JNI.
